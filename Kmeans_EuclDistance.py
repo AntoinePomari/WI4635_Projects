@@ -28,33 +28,37 @@ K = 10
 def EuclKmeans(Data = np.ndarray, K = int, maxit = 1000):
     '''
     EuclKmeans: perform K means clustering using classic Euclidean norm
-    
     INPUT:
         Data: our set of images (used as vectors: ideally (N_obs, 784) shape)
-        clusters: number of desired clusters
+        K: number of desired clusters
         maxit: control value to limit iterations
     
     OUTPUT:
         centroids: ndarray(K,784), dtype = int32, each (1,784) vector correpsonds to the centroid of one cluster.
         clusters: ndarray(Nobs, 1), dtype = int32, each position is the "clustered" number associated to the image
     '''
-    #Define a counter and some useful numbers: number of observations, number of pixels / image, "Assign": defines the class of each number
-    count = 0
+    #Define some useful numbers: number of observations, number of pixels/image
     [Nobs, Npix] = np.shape(Data)
-#   Initialization: define centroids and assign each image to a cluster
+    # TODO: Initialization: define centroids and assign each image to a cluster
     centroids = np.empty((K,Npix),dtype = int)
-    clusters = AssignCluster(Data, Nobs, centroids, K)
-    alpha = EvaluateKmeans(Data, Nobs, centroids, K, clusters)
-    # Initialization II: perform one step outside the while loop
-    centroids = OneStepKmeans(Data, Nobs, K, clusters)
-    beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters)
-    count = 1
     
-    while beta < alpha and count < maxit:
+    #Each image will be set into a cluster, the name of the cluster corresponds to the number
+    clusters = np.zeros((Nobs,1), dtype = int) #Dummy initialization
+    clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Actually assign each vector to a cluster
+    
+    #How good is the initial cluster choice?
+    alpha = EvaluateKmeans(Data, Nobs, centroids, K, clusters) 
+    
+    # Initialization II: perform one step outside the while loop -> How good are the 1st step centroids?
+    centroids = UpdateCentroids(Data, Nobs, K, clusters)
+    beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters)
+    
+    count = 1 #We already performed one iteration outside the loop
+    while beta < alpha and count < maxit: 
         alpha = beta
-        clusters = AssignCluster(Data, Nobs, centroids, K)
-        centroids = OneStepKmeans(Data, Nobs, K, clusters)
-        beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters)
+        clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Better centroids -> new assignments
+        centroids = UpdateCentroids(Data, Nobs, centroids, K, clusters) #New assignment -> we redefine the centroids
+        beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters) #New centroids -> will they improve the clustering?
         count = count+1
     
     return centroids, clusters
@@ -63,28 +67,54 @@ def EuclKmeans(Data = np.ndarray, K = int, maxit = 1000):
 
 
 
-def initialize(Data = np.ndarray, clusters = int):
-    
-    
-    
-    
+def initialize(Data = np.ndarray, clusters = int): 
+    #TODO !!
     return centroids
 
 
 
-def AssignCluster(Data, Nobs, centroids, K):
-    clusters = np.zeros((Nobs,1), dtype = int)
+def AssignCluster(Data, Nobs, centroids, K, clusters):
+    '''
+    Parameters
+    ----------
+    Data
+    Nobs
+    centroids (new)
+    K
+    clusters (old)
+
+    Returns
+    -------
+    clusters: ndarray, dtype = int
+        Given new centroids, assigns new clusters
+
+    '''
     for ii in range(Nobs):
         value = (Data[ii,:]-centroids[0,:]) @ (Data[ii,:]-centroids[0,:])
+        clusters[ii] = 0
         for kk in range(K-1):
             tmp = (Data[ii,:]-centroids[kk+1,:]) @ (Data[ii,:]-centroids[kk+1,:])
             if tmp < value:
                 value = tmp
-        clusters[ii] = value
+        clusters[ii] = kk
     del value
     return clusters
 
 def EvaluateKmeans(Data, Nobs, centroids, K, clusters):
+    '''
+    Parameters
+    ----------
+    Data
+    Nobs
+    centroids (new)
+    K
+    clusters (new)
+    
+    Returns
+    -------
+    obj : float
+         Eucl distance evaluated for current centroids and cluster assignment.
+    '''
     obj = 0
     for kk in range(K):
         for ii in range(Nobs):
@@ -92,8 +122,22 @@ def EvaluateKmeans(Data, Nobs, centroids, K, clusters):
                 obj = obj + (Data[ii,:]-centroids[kk,:])@(Data[ii,:]-centroids[kk,:])
     return obj
 
-def OneStepKmeans(Data, Nobs, Npix, K, clusters):
-    centroids = np.zeros(shape = (K,Npix), dtype = int)
+def UpdateCentroids(Data, Nobs, centroids, K, clusters):
+    '''
+    Parameters
+    ----------
+    Data
+    Nobs
+    centroids (old)
+    K
+    clusters (new)
+
+    Returns
+    -------
+    centroids : ndarray, dtype = int
+        If there is improvement, we perform a new assignment -> we must update the new centroids
+
+    '''
     SizeCluster = np.bincount(clusters).astype(int)
     for kk in range(K):
         for ii in range(Nobs):
@@ -102,9 +146,4 @@ def OneStepKmeans(Data, Nobs, Npix, K, clusters):
         centroids[kk,:] = (1 / SizeCluster[kk]) * centroids[kk,:]
     del SizeCluster
     return centroids
-
-
-
-
-
 
