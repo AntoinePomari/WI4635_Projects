@@ -17,10 +17,8 @@ def EuclKmeans(Data = np.ndarray, K = int, maxit = 100):
     '''
     [Nobs, Npix] = np.shape(Data)
     
-    # INITIALIZATION
-    
-    #(random samples W/OUT replacement: avoid 2 identical centroids at the start)
-    centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] 
+    # INITIALIZATION 
+    centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #avoid 2 identical centroids at the start
     # centroids = Data[[0,1,2,3,4,5,7,13,15,17],:]
     clusters = [[] for index in range(K)] 
     clusters = AssignCluster(Data, Nobs, centroids, K, clusters)
@@ -30,19 +28,18 @@ def EuclKmeans(Data = np.ndarray, K = int, maxit = 100):
     alpha = EvaluateKmeans(Data, Nobs, centroids, K, clusters) 
     
     # INITIALIZATION pt II: perform one step outside the while loop
-    centroids = UpdateCentroids(Data, Nobs, centroids, K, clusters)
-    beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters)
+    centroids = UpdateCentroids(Data, Nobs, centroids, K, clusters) #New centroids
+    clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #New cluster assignments
+    beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters) #Did we improve? compare beta&alpha
     
     print("Step 1 is done outside the loop")
-    
-    count = 1 #We already performed one iteration outside the loop
+    count = 1 
     
     while beta < alpha and count < maxit: 
-        #NB WHY NOT UPDATE CLUSTERS AFTER CENTROIDS?
         alpha = beta
-        clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Better centroids -> new assignments
-        centroids = UpdateCentroids(Data, Nobs, centroids, K, clusters) #New assignment -> we redefine the centroids
-        beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters) #New centroids -> will they improve the clustering?
+        centroids = UpdateCentroids(Data, Nobs, centroids, K, clusters) #New centroids
+        clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #New cluster assignments
+        beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters) #Did we improve? compare beta&alpha
         count = count+1        
         print("Step", count, "has been completed")
 
