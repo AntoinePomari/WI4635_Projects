@@ -5,23 +5,32 @@ import numpy as np
 #Define function for K-means with standard Euclidean distance
 def EuclKmeans(Data = np.ndarray, K = int, maxit = 100):
     '''
-    EuclKmeans: perform K means clustering using classic Euclidean norm
+     EuclKmeans: perform K means clustering using classic Euclidean norm
     INPUT:
-        Data: our set of images, (Nobs, Npix) shape
-        K: number of desired clusters
-        maxit: control value to limit iterations
+        
     
     OUTPUT:
-        centroids: ndarray(K,Npix), each (1,Npix) vector correpsonds to the centroid of one cluster.
-        clusters: contains the list of indices associated to each cluster
+
+    Parameters
+    ----------
+    Data: our set of images, (Nobs, Npix) shape
+    K: number of desired clusters
+    maxit: control value to limit iterations
+
+    Returns
+    -------
+    centroids: ndarray(K,Npix), each (1,Npix) vector correpsonds to the centroid of one cluster.
+    clusters: list[K sublists], inside the i-th of these K sublists are the 
+                indices of the images associated to the i-th cluster
+
     '''
     [Nobs, Npix] = np.shape(Data)
     
     # INITIALIZATION 
-    centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #avoid 2 identical centroids at the start
-    # centroids = Data[[0,1,2,3,4,5,7,13,15,17],:]
+    # centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #avoid 2 identical centroids at the start
+    centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ initialization (hopefully lol)
     clusters = [[] for index in range(K)] 
-    clusters = AssignCluster(Data, Nobs, centroids, K, clusters)
+    clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Assign Clusters
     print("Centroids,clusters are initialized")
     
     #Evaluate (6.1) from Lecture Notes:
@@ -53,6 +62,8 @@ def EuclKmeans(Data = np.ndarray, K = int, maxit = 100):
 
 def AssignCluster(Data, Nobs, centroids, K, clusters):
     '''
+    Given the updated centroids, re-assigns each image to the "good" cluster
+    
     Parameters
     ----------
     Data
@@ -68,13 +79,15 @@ def AssignCluster(Data, Nobs, centroids, K, clusters):
     '''
     clusters = [[] for index in range(K)]
     for point_idx, point in enumerate(Data):
-        closest_centroid = np.argmin( np.sqrt( np.sum( ( point - centroids) ** 2, axis=1) ) )
+        closest_centroid = np.argmin( np.sum( ( point - centroids) ** 2, axis=1 ) ) #axis=1 is correct
         clusters[closest_centroid].append(point_idx)
     
     return clusters
 
 def EvaluateKmeans(Data, Nobs, centroids, K, clusters):
     '''
+    Evaluation of (6.1) from lecture notes
+    
     Parameters
     ----------
     Data
@@ -89,20 +102,20 @@ def EvaluateKmeans(Data, Nobs, centroids, K, clusters):
          Formula (6.1): Euclidean distance-type of objective function for current centroids and cluster assignment.
     '''
     obj = 0.0
-    # for clust_id, clust in enumerate(clusters):
-    #     print("current value of (6.1):",obj)
-    #     for point_idx, point in enumerate(Data):
-    #         if PointInCluster(point_idx,clust):
-    #             obj = obj + np.sqrt( np.sum((point - centroids[clust_id]) ** 2))
     for clust_id, clust in enumerate(clusters):
-        # print("current value of (6.1):",obj)
-        for point_idx in clust:
-            point = Data[point_idx,:]
-            obj = obj + np.sqrt( np.sum((point - centroids[clust_id]) ** 2))
+        obj = obj +  np.sum( (Data[clust,:] - centroids[clust_id]) ** 2 )
+
     return obj
+
+# for point_idx in clust:
+#     point = Data[point_idx,:]
+#     obj = obj +  np.sum( (point - centroids[clust_id]) ** 2 )
+# print("value of 6.1 at this step:", obj)
 
 def UpdateCentroids(Data, Nobs, centroids, K, clusters):
     '''
+    Updates position of centroids
+    
     Parameters
     ----------
     Data
@@ -118,8 +131,7 @@ def UpdateCentroids(Data, Nobs, centroids, K, clusters):
 
     '''
     for idx, cluster in enumerate(clusters):
-        # print("current index:", idx)
-        new_centroid = np.mean(Data[cluster,:], axis=0)
+        new_centroid = np.mean(Data[cluster,:], axis=0) #axis 0 is correct
         centroids[idx] = new_centroid
     
     return centroids
@@ -127,7 +139,8 @@ def UpdateCentroids(Data, Nobs, centroids, K, clusters):
 
 def MostRepresentedInEachCluster(centroids, clusters, real_values):
     '''
-
+    Looks at "real" values (y vector) to find out w
+    
     Parameters
     ----------
     centroids & clusters : obtained using Kmeans algo
@@ -165,11 +178,61 @@ def Accuracy(centroids, clusters, real_values):
     '''
     
     acc = 0.0
-    
+    Nobs = len(real_values)
     for clust_id, clust in enumerate(clusters):
         current_chypers = real_values[clust]
-        current = np.unique(current_chypers, return_counts = True)[1]
-        acc = acc + np.max(current)
+        current = np.unique(current_chypers, return_counts = True)[1] #For each cluster: counts the times that each number is present in the cluster
+        acc = acc + np.max(current) #We look at the most present number, and we add it 
     
-    acc = acc / 70000
+    acc = acc / Nobs
+    
     return acc
+
+def K_initialize(Data, Nobs, Npix, K):
+    '''
+    Kmeans++ type of initialization (if it is done correctly lol)
+
+    Parameters
+    ----------
+    Data
+    Nobs
+    Npix
+    K
+
+    Returns
+    -------
+    centroids: initialized centroids, using kmeans++ approach: to choose the i-th centroid we look
+                at the (Nobs- (i-1)) points left. The more distant a point is from the already defined (i-1) centroids,
+                the higher the probabilty to choose said point as i-th centroid.
+
+    '''
+    banned_list = []
+    random_id = np.random.choice([idx for idx in range(Nobs)])
+    centroids = Data[random_id,:]
+    banned_list.append(random_id)
+    distanceSQ = np.sum( (Data-centroids) ** 2, axis = 1 )
+    
+    for repetition in range(K-1):
+        while random_id in banned_list:
+            # print("number", random_id, "is banned! See list of banned indices:", banned_list)
+            random_id = np.random.choice( [idx for idx in range(Nobs)], p = distanceSQ/np.sum(distanceSQ) )
+        banned_list.append(random_id)
+        centroids = np.vstack( (centroids, Data[random_id,:]) )
+        distanceSQ = K_distanceSQ(Data,centroids)
+
+    return centroids
+
+
+def K_distanceSQ(Data,centroids):
+    
+    distance = []
+    
+    for point in Data:        
+        closest_centroid = np.argmin( np.sum( (point - centroids) ** 2, axis=1 ) )
+        dist = np.sum( (point - centroids[closest_centroid]) ** 2 )  
+        distance.append(dist)
+    
+    return distance
+
+
+
