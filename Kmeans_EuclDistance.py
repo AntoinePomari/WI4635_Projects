@@ -1,34 +1,35 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-
-#Define function for K-means with standard Euclidean distance
-def EuclKmeans(Data = np.ndarray, K = int, maxit = 100):
+def EuclKmeans(Data = np.ndarray, K = int, maxit = 100, initialize = "++"):
     '''
-     EuclKmeans: perform K means clustering using classic Euclidean norm
-    INPUT:
-        
-    
-    OUTPUT:
+     EuclKmeans: perform K means clustering using classic Euclidean norm, without altering the features of Data
 
     Parameters
     ----------
     Data: our set of images, (Nobs, Npix) shape
     K: number of desired clusters
     maxit: control value to limit iterations
+    initialize: "++" -> Kmeans++ type of initialization to choose centroids
+                "random" -> random initialization with uniform probabilty density
 
     Returns
     -------
     centroids: ndarray(K,Npix), each (1,Npix) vector correpsonds to the centroid of one cluster.
     clusters: list[K sublists], inside the i-th of these K sublists are the 
                 indices of the images associated to the i-th cluster
-
     '''
     [Nobs, Npix] = np.shape(Data)
     
     # INITIALIZATION 
-    # centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #avoid 2 identical centroids at the start
-    centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ initialization (hopefully lol)
+    if initialize == "++":
+        centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ initialization (hopefully lol)
+
+    elif initialize == "random":
+        centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #avoid 2 identical centroids at the start
+    else: 
+        raise ValueError("Enter valid initialization method for centroids") 
+    
     clusters = [[] for index in range(K)] 
     clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Assign Clusters
     print("Centroids,clusters are initialized")
@@ -187,6 +188,7 @@ def Accuracy(centroids, clusters, real_values):
     acc = acc / Nobs
     
     return acc
+
 
 def K_initialize(Data, Nobs, Npix, K):
     '''
