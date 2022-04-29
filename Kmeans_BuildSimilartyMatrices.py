@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import scipy.sparse as sps
+# import scipy.sparse as sps
 import timeit
 
 
@@ -34,6 +34,8 @@ def BuildKernel(Data = np.ndarray, kernel = "Gauss", gamma = 0.1, alpha = 0.5, C
         for ii, vector in enumerate(Data):
             # tmp = np.exp( -gamma * np.sum( (vector - Data[ii:Data.shape[0],:]) ** 2, axis = 1 ))
             K[ii].append( np.exp( -gamma * np.sum( (vector - Data[ii:Data.shape[0],:]) ** 2, axis = 1 ) ) )
+            # K[ii][0] = [0 for filler in range(Nobs-K[ii][0])] + K[ii][0]
+    
     
     elif kernel == "Poly2":
         for ii, vector in enumerate(Data):
@@ -56,18 +58,22 @@ def BuildKernel(Data = np.ndarray, kernel = "Gauss", gamma = 0.1, alpha = 0.5, C
 
         
      
-    #TURN LIST OF LISTS INTO TRIANGULAR MATRIX -> VERY SLOW AS Nobs INCREASES!!!
-    # start = timeit.default_timer()
-    # Kmat = np.empty((0,Nobs))
-    # # Kmatsparse = sps.csc_matrix((0,Nobs))
-    # for element in K:
-    #     tmp = np.append( np.zeros(Nobs-len(element[0])), element )
-    #     Kmat = np.vstack( (Kmat, tmp) )
-    #     # Sparsetmp = sps.csc_matrix( np.append(np.zeros(Nobs-len(element[0])),element ) )
-    #     # Kmatsparse = sps.vstack( (Kmatsparse, Sparsetmp) )
+    # TURN LIST OF LISTS INTO TRIANGULAR MATRIX -> VERY SLOW AS Nobs INCREASES!!!
+    start = timeit.default_timer()
+    Kmat = np.empty((0,Nobs))
+    # Kmatsparse = sps.csc_matrix((0,Nobs))
+    for element in K:
+        tmp = np.append( np.zeros(Nobs-len(element[0])), element )
+        Kmat = np.vstack( (Kmat, tmp) )
+        # Sparsetmp = sps.csc_matrix( np.append(np.zeros(Nobs-len(element[0])),element ) )
+        # Kmatsparse = sps.vstack( (Kmatsparse, Sparsetmp) )
     # Kmat = sps.csc_matrix(Kmat)
-    # stop = timeit.default_timer()
-    # print("Time to post process:", stop - start)
+    stop = timeit.default_timer()
     
-    # return Kmat
-    return K
+    
+    
+    
+    print("Time to post process:", stop - start)
+    
+    return Kmat
+    # return K
