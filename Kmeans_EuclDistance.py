@@ -23,10 +23,10 @@ def EuclKmeans(Data = np.ndarray, K = int, maxit = 100, initialize = "++"):
     
     # INITIALIZATION 
     if initialize == "++":
-        centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ initialization (hopefully lol)
+        centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ style initialization (hopefully code is correct lol)
 
     elif initialize == "random":
-        centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #avoid 2 identical centroids at the start
+        centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #random, avoid 2 identical centroids at the start
     else: 
         raise ValueError("Enter valid initialization method for centroids") 
     
@@ -80,7 +80,7 @@ def AssignCluster(Data, Nobs, centroids, K, clusters):
     '''
     clusters = [[] for index in range(K)]
     for point_idx, point in enumerate(Data):
-        closest_centroid = np.argmin( np.sum( ( point - centroids) ** 2, axis=1 ) ) #axis=1 is correct
+        closest_centroid = np.argmin( np.sum( ( point - centroids) ** 2, axis=1 ) )
         clusters[closest_centroid].append(point_idx)
     
     return clusters

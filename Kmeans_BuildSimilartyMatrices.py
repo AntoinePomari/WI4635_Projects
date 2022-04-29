@@ -23,31 +23,39 @@ def BuildKernel(Data = np.ndarray, kernel = "Gauss", gamma = 0.1, alpha = 1e-4, 
     Returns
     -------
     K : Kernel matrix for the selected Kernel.
-        NB symmetry -> only upper triangular part will be nonzero
+        NB symmetry -> only upper triangular part is computed. Final matrix has to be calculated "manually" outside
         Shape: (Nobs,Nobs), Format: CSC
     '''
     #INITIALIZE
     [Nobs, Npix] = np.shape(Data)
     K = [[] for index in range(Nobs)]
     
-    #KERNEL COMPUTATION USING LISTS -> there is some numpy mixed in. Would probably be faster without it but not sure how to take it off.
+    #KERNEL COMPUTATION USING LISTS -> there is some numpy mixed in. Would probably be faster without it but not sure how to avoid it.
     start = timeit.default_timer()
-    vecofzeros = np.zeros((0,))
+    vecofzeros = np.zeros((0,), dtype= Data.dtype)
+    # listofzeros = []
     if kernel == "Gauss":
         for ii, vector in enumerate(Data):
-            # tmp = np.exp( -gamma * np.sum( (vector - Data[ii:Data.shape[0],:]) ** 2, axis = 1 ))
-            K[ii].append(np.append(vecofzeros, np.exp( -gamma * np.sum( (vector - Data[ii:Data.shape[0],:]) ** 2, axis = 1 ) ) ) )
+            # tmp = np.exp( -gamma * np.sum( (vector - Data[ii:,:]) ** 2, axis = 1 ))
+            # tmp = np.append(vecofzeros,tmp)
+            # K[ii].append(tmp)
+            K[ii].append(np.append(vecofzeros, np.exp( -gamma * np.sum( (vector - Data[ii:,:]) ** 2, axis = 1 ) ) ) )
             vecofzeros = np.append(vecofzeros, 0)
     elif kernel == "Poly2":
         for ii, vector in enumerate(Data):
-            tmp = np.sum( vector * Data[ii:Data.shape[0],:], axis = 1 ) 
-            K[ii].append( np.append( vecofzeros, (tmp + np.ones(len(tmp))) ** 2 ) )
+            tmp = np.sum( vector * Data[ii:Data.shape[0],:], axis = 1 )
+            tmp = (tmp + np.ones(len(tmp))) ** 2 
+            tmp = np.append(vecofzeros,tmp)
+            K[ii].append(tmp)
             vecofzeros = np.append(vecofzeros, 0)
+            # listofzeros.append(0.)
     elif kernel == "Sigmoid":
         for ii, vector in enumerate(Data):
             tmp = np.sum( vector * Data[ii:Data.shape[0],:], axis = 1 )
-            K[ii].append(np.append( vecofzeros, np.tanh(alpha * tmp + C * np.ones(len(tmp))) ) )
-            vecofzeros = np.append(vecofzeros, 0)            
+            tmp = np.tanh(alpha * tmp + C * np.ones(len(tmp)))
+            tmp = np.append(vecofzeros, tmp)
+            K[ii].append( tmp ) 
+            vecofzeros = np.append(vecofzeros, 0.)            
     elif kernel == "quadrant_col_sum":
         kernel_data = QuadrantColorSum(Data, Nobs, Npix)
         for ii, vector in enumerate(kernel_data):
