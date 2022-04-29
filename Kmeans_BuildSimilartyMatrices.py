@@ -57,7 +57,7 @@ def BuildKernel(Data = np.ndarray, kernel = "Gauss", gamma = 0.1, alpha = 1e-4, 
     else:
         raise ValueError("Enter available Kernel type") 
     stop = timeit.default_timer()
-    print("Time to get Kernel:", stop - start)
+    print("Time to evaluate Kernel:", stop - start)
 
     # TURN LIST OF LISTS INTO TRIANGULAR MATRIX -> VERY SLOW AS Nobs INCREASES!!!
     start = timeit.default_timer()
