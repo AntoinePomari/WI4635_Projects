@@ -13,12 +13,32 @@ import Kmeans_EuclDistance as KmEu
 import Kmeans_BuildSimilartyMatrices as KmBSM
 
 
-def inverse_power(A, mu, v, niter, tol):
+def inverse_power(L, mu, v, niter, tol):
+        '''
+    Power method Algorith 8. 
+    Steps: 
+    For niter iterations
+    Calculate new eigenvector
+    Calculate Rayleigh qoutient
+    
+    Parameters
+    ----------
+    L : Laplacian
+    mu : current approx. of biggest eigenvalue
+      : current approx. of biggest eigenvector
+    niter: amount of iterations
+    tol: relative tolarance
+    Returns
+    -------
+    mu_new: biggest eigenvalue
+    v: biggest eigenvector
+        
+    '''
     for i in range(niter)
-        Av = np.dot(A,v)
-        Av_norm = np.linalg.norm(Av)
-        v = Av/Av_norm
-        mu_new = np.dot(np.transpose(v),np,dot(A,v))
+        Lv = np.dot(L,v)
+        Lv_norm = np.linalg.norm(Lv)
+        v = Lv/Lv_norm
+        mu_new = np.dot(np.transpose(v),np,dot(L,v))
         if (abs(mu_new - mu)/mu_new) < tol:
             return mu_new, v
         mu = mu_new
@@ -26,16 +46,30 @@ def inverse_power(A, mu, v, niter, tol):
     return mu_new, v
 
 
-def find_eigen_vectors(L, k):
-    smallest_k = np.zeros((k, L.shape[0]))
+def find_eigen_vectors(L, K):
+    '''
+    Algorithm to find K smallest eigenvectors. 
+    Steps: 
+    Initialize some matrix for smallest eigenvectors, mu and v
+    For K iterations
+    Remove smallest eigenpair from L (First with mu=0)
+    Calculate the smallest eigenpair (Biggest of L_inv
+    
+    Parameters
+    ----------
+    L : Laplacian
+    K : amount of eigenvectors
+        
+    '''
+    smallest_K = np.zeros((K, L.shape[0]))
     mu = 0
     v = np.ones(L.shape[0]) 
-    for i in range(0, k):
+    for i in range(0, K):
         L = L - mu*np.dot(v, np.transpose(v))
         mu, v = inverse_power(L, mu, v, niter, tol)
-        smallest_k[i,:] = v
+        smallest_K[i,:] = v
     
-    return smallest_k
+    return smallest_K
         
 
 
@@ -66,7 +100,7 @@ def SpecClust(Data, K, Kmeans_maxit = 100, Kmeans_initialize = "random", SimilMa
         L = KmBSM.BuildKernel(Data, kernel = SimilMat_kernel) #upper triangular W
         L = L + L.T - np.diag(np.diah(L)) # correct shape W
         L = np.diag( np.sum(L, axis = 1) ) - L #actual Laplacian L
-        #FIND K SMALLEST EIGENVALUES & CORRESPONDING EIGENVECTORS WITH OUR OWN SOLVER
+        #COMPUTE PSEUDO-INVERSE AND FIND K SMALLEST EIGENVALUES & CORRESPONDING EIGENVECTORS WITH OUR OWN SOLVER
         L_inv = np.linalg.pinv(L)
         H = find_eigen_vectors(L_inv, K)
         #RUN Kmeans ON ROWS OF MATRIX H
@@ -78,7 +112,7 @@ def SpecClust(Data, K, Kmeans_maxit = 100, Kmeans_initialize = "random", SimilMa
         Normalizer = np.diag( 1/np.sqrt(np.sum(L, axis = 1)) ) #Normalizer Factor D^(-1/2)
         L = np.eye(L.shape) - Normalizer @ L @ Normalizer #actual Normalized Laplacian
         
-        #FIND K SMALLEST EIGENVALUES & CORRESPONDING EIGENVECTORS WITH OUR OWN SOLVER
+        #COMPUTE PSEUDO-INVERSE AND FIND K SMALLEST EIGENVALUES & CORRESPONDING EIGENVECTORS WITH OUR OWN SOLVER
         L_inv = np.linalg.pinv(L)
         H = find_eigen_vectors(L_inv, K)
         #RUN Kmeans ON ROWS OF MATRIX H
