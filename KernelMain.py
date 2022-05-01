@@ -9,24 +9,36 @@ import Kmeans_Kernel as KmK
 import Kmeans_BuildKernelMatrix as KmBKM
 from sklearn.datasets import fetch_openml
 
+
+## Load data
 X, y = fetch_openml('mnist_784', version=1, return_X_y=True)
 Xarray = X.to_numpy()
 Xarray = Xarray.astype(np.float32) / 255.0 #Normalization: useful for computation
+
+
+
+## Initialization steps
+
+# Number of clusters 
 K = 10
 
-
-#Set seed -> Reproducibility, random initialization
-np.random.seed(K ** 2)
+# Number of data points to be used: ideally 70000
 BigN = 10000
 Data = Xarray[:BigN,:] 
 real_val = y[:BigN] 
 
-#Construct desired Kernel matrix (options: Gauss, Poly2, Sigmoid, quadrant_col_sum, nnzcount)
-KernelMat = KmBKM.BuildKernel(Data, kernel = "Sigmoid")
+# Construct desired Kernel matrix 
+# Kernel (and hyperparameter) options: Gauss (with gamma), Poly (with r), Sigmoid (with alpha and C), 
+# ..., quadrant_col_sum, nonzerototal, nonzerorows, nonzerorows_cols
+
+KernelMat = KmBKM.BuildKernel(Data, kernel = "Gauss", gamma=0.01)
 KernelMat = KernelMat + KernelMat.T - np.diag( np.diag(KernelMat) )
 # np.save("GaussianKernel_FullDataset",KernelMat)
 
+## Run algorithm
 clust = KmK.Kmeans(KernelMat, Data, K, maxit = 120)
+
+## Compute and print result
 result = KmK.MostRepresentedInEachCluster(clust, real_val)
 acc = KmK.Accuracy(clust, real_val)
 
