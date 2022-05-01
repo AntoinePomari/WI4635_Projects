@@ -67,7 +67,8 @@ def SpecClust(Data, K, Kmeans_maxit = 100, Kmeans_initialize = "random", SimilMa
         L = L + L.T - np.diag(np.diah(L)) # correct shape W
         L = np.diag( np.sum(L, axis = 1) ) - L #actual Laplacian L
         #FIND K SMALLEST EIGENVALUES & CORRESPONDING EIGENVECTORS WITH OUR OWN SOLVER
-        H = find_eigen_vectors(L, K)
+        L_inv = np.linalg.pinv(L)
+        H = find_eigen_vectors(L_inv, K)
         #RUN Kmeans ON ROWS OF MATRIX H
         [centers, clusters] = KmEu.EuclKmeans(H, K, maxit = Kmeans_maxit, initialize = Kmeans_initialize)
     else:
@@ -78,13 +79,14 @@ def SpecClust(Data, K, Kmeans_maxit = 100, Kmeans_initialize = "random", SimilMa
         L = np.eye(L.shape) - Normalizer @ L @ Normalizer #actual Normalized Laplacian
         
         #FIND K SMALLEST EIGENVALUES & CORRESPONDING EIGENVECTORS WITH OUR OWN SOLVER
-        H = find_eigen_vectors(L, K)
+        L_inv = np.linalg.pinv(L)
+        H = find_eigen_vectors(L_inv, K)
         #RUN Kmeans ON ROWS OF MATRIX H
         [centers, clusters] = KmEu.EuclKmeans(H, K, maxit = Kmeans_maxit, initialize = Kmeans_initialize)
     
     return [centers, clusters]
 
-L_inv = np.linalg.pinv(L)
+
 
 
 
