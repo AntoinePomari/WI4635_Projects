@@ -3,7 +3,7 @@ import numpy as np
 
 def EuclKmeans(Data = np.ndarray, K = int, maxit = 100, initialize = "++"):
     '''
-     EuclKmeans: perform K means clustering using classic Euclidean norm, without altering the features of Data
+     EuclKmeans: perform K means clustering using classic Euclidean norm
 
     Parameters
     ----------
@@ -23,7 +23,7 @@ def EuclKmeans(Data = np.ndarray, K = int, maxit = 100, initialize = "++"):
     
     # INITIALIZATION 
     if initialize == "++":
-        centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ style initialization (hopefully code is correct lol)
+        centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ style initialization 
 
     elif initialize == "random":
         centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #random, avoid 2 identical centroids at the start
@@ -192,7 +192,7 @@ def Accuracy(centroids, clusters, real_values):
 
 def K_initialize(Data, Nobs, Npix, K):
     '''
-    Kmeans++ type of initialization (if it is done correctly lol)
+    Kmeans++ type of initialization 
 
     Parameters
     ----------
@@ -216,7 +216,6 @@ def K_initialize(Data, Nobs, Npix, K):
     
     for repetition in range(K-1):
         while random_id in banned_list:
-            # print("number", random_id, "is banned! See list of banned indices:", banned_list)
             random_id = np.random.choice( [idx for idx in range(Nobs)], p = distanceSQ/np.sum(distanceSQ) )
         banned_list.append(random_id)
         centroids = np.vstack( (centroids, Data[random_id,:]) )
