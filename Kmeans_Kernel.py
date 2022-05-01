@@ -1,13 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Apr 28 12:54:37 2022
-
-@author: Jim
-"""
 import numpy as np
-from random import randint, choice
 
-def Kmeans(kernel, Data = np.ndarray, K = int, maxit = 100):
+def Kmeans(kernelmatrix, Data = np.ndarray, K = int, maxit = 100):
     '''
      KernelKmeans: perform K means clustering using a custom kernel
      
@@ -26,33 +19,21 @@ def Kmeans(kernel, Data = np.ndarray, K = int, maxit = 100):
     '''
     [Nobs, Npix] = np.shape(Data)
     
-    # INITIALIZATION
+    # INITIALIZATION: random cluster assignment
     clusters = [[] for index in range(K)] 
-    for point_idx, point in enumerate(Data):
+    for point_idx in range(Nobs):
         clusters[np.random.choice(K)].append(point_idx)
     print("Clusters are initialized randomly")
-    
-    # Compute the kernel of each point combination beforehand
-    #Method 1: fromfunction
-    #kernelmatrix = np.fromfunction(np.vectorize(lambda i,j:kernel(Data[i,:],Data[j,:])),(Nobs,Nobs),dtype=np.float32)
-    
-    #Method 2: for loop
-    kernelmatrix = np.zeros((Nobs,Nobs),dtype=np.float32)
-    for i in range(Nobs):
-        kernelmatrix[i:,i] = kernel(Data[i,:],Data[i:,:])
-    kernelmatrix = kernelmatrix + kernelmatrix.T - np.diag(kernelmatrix.diagonal())
-    print("Kernel matrix computed")
-    
+
     #Evaluate (6.1) from Lecture Notes with kernel instead of inner product:
     alpha = EvaluateKernelKmeans(kernelmatrix, Data, Nobs, K, clusters) 
     
     # INITIALIZATION pt II: perform one step outside the while loop
     clusters = AssignClusterKernel(kernelmatrix, Data, Nobs, K, clusters) #New cluster assignments
     beta = EvaluateKernelKmeans(kernelmatrix, Data, Nobs, K, clusters) #Did we improve? compare beta&alpha
-    
     print("Step 1 is done outside the loop")
-    count = 1 
     
+    count = 1 
     while beta < alpha and count < maxit: 
         alpha = beta
         clusters = AssignClusterKernel(kernelmatrix, Data, Nobs, K, clusters) #New cluster assignments
@@ -86,22 +67,15 @@ def AssignClusterKernel(kernelmatrix, Data, Nobs, K, clusters):
 
     '''
     newclusters = [[] for index in range(K)]
-    maxclusterlength = max(len(clust) for clust in clusters)
     
-    # Normalized submatrix of kernelmatrix to allow for easy computation
-    clustsubmatrices = np.zeros((K, maxclusterlength, maxclusterlength))
-    for k in range(K):
-        clustsubmatrices[k,:len(clusters[k]),:len(clusters[k])] = kernelmatrix[np.ix_(clusters[k],clusters[k])]
-    
-    for point_idx, point in enumerate(Data):
-        #bestcluster = np.argmin([kernelmatrix[point_idx,point_idx] - 2* np.sum(kernelmatrix[point_idx, clusters[k]]) / len(clusters[k]) \
-        #            + np.sum(clustsubmatrices[k,:,:]) / len(clusters[k])**2 for k in range(K)])
-        
-        disttoclusters = [kernelmatrix[point_idx,point_idx]*len(clusters[k])**2 \
-            - 2*len(clusters[k])* np.sum(kernelmatrix[point_idx, clusters[k]]) + np.sum(clustsubmatrices[k,:,:])  for k in range(K)]
-        
-        bestcluster = np.argmin(disttoclusters)
-        newclusters[bestcluster].append(point_idx)
+    #Assign x_j to cluster k' := argmin_k K(x_j,x_j) - 2/|C_k|sum_i in C_k K(x_j,x_i) + 1/|C_k|^2 sum_i,l in C_k K(x_i,x_l) 
+    clustkernelsum = [(1/len(clusters[k])**2) * np.sum(kernelmatrix[np.ix_(clusters[k],clusters[k])]) for k in range(K)]
+    for point_idx in range(Nobs):
+        clusterfun_values = np.empty(K)
+        for clust_id, clust in enumerate(clusters):
+            clusterfun_values[clust_id] = kernelmatrix[point_idx,point_idx] - (2/len(clust)) * np.sum(kernelmatrix[point_idx,clust]) + clustkernelsum[clust_id]
+        newclust_index = np.argmin(clusterfun_values)
+        newclusters[newclust_index].append(point_idx)
     
     for k in range(K):
         if len(newclusters[k]) == 0:
@@ -124,15 +98,17 @@ def EvaluateKernelKmeans(kernelmatrix, Data, Nobs, K, clusters):
     Returns
     -------
     obj : float
-         Formula (6.1):
+         Formula (6.1): sum_k = 1 to Nclust ( sum_i in C_k norm(xi-ck)^2 ) (NB needs to be "adapted" for Kernel ofc)
     '''
     obj = 0.0
+    # The sum of kernel values for all points in a given clusterdoes not depend on x_j
+    # and can therefore be computed beforehand
+    clustkernelsum = [(1/len(clusters[k])**2) * np.sum(kernelmatrix[np.ix_(clusters[k],clusters[k])]) for k in range(K)]
     for clust_id, clust in enumerate(clusters):
-        if len(clust)!=0:
-            clustkernelmatrix = kernelmatrix[np.ix_(clust,clust)]
-            obj = obj +  np.trace(clustkernelmatrix) - np.sum(clustkernelmatrix)/len(clust)
-        
-
+        for point_idx in clust:
+            obj += kernelmatrix[point_idx,point_idx] - (2/len(clust)) * np.sum(kernelmatrix[point_idx,clust]) + clustkernelsum[clust_id]
+    print("loss function is now:", obj)
+   
     return obj
 
 def MostRepresentedInEachCluster(clusters, real_values):
@@ -142,7 +118,7 @@ def MostRepresentedInEachCluster(clusters, real_values):
     Parameters
     ----------
     clusters : obtained using Kmeans algo
-    real_values : vector of labels used to identify each cluster etc
+    real_values : vector of labels used to identify most present number in each cluster
 
     Returns
     -------
@@ -173,7 +149,6 @@ def Accuracy(clusters, real_values):
     acc : accuracy of clustering obtained
 
     '''
-    
     acc = 0.0
     Nobs = len(real_values)
     for clust_id, clust in enumerate(clusters):
