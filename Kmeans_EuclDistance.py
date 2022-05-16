@@ -24,15 +24,53 @@ def EuclKmeans(Data = np.ndarray, K = int, maxit = 100, initialize = "++"):
     # INITIALIZATION 
     if initialize == "++":
         centroids = K_initialize(Data, Nobs, Npix, K) #Kmeans++ style initialization 
-
+        clusters = [[] for index in range(K)] 
+        clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Assign Clusters
+        print("Centroids,clusters are initialized")
+    
     elif initialize == "random":
         centroids = Data[np.random.choice(Nobs,size = K,replace = False),:] #random, avoid 2 identical centroids at the start
+        clusters = [[] for index in range(K)] 
+        clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Assign Clusters
+        print("Centroids,clusters are initialized")
+    
+    elif initialize == "clusters_random":
+        clusters = [[] for index in range(K)] 
+        for point_idx in range(Nobs):
+            clusters[np.random.choice(K)].append(point_idx)
+        print("Clusters are initialized randomly")
+        centroids = np.zeros((K,Npix))
+        for idx, cluster in enumerate(clusters):
+            new_centroid = np.mean(Data[cluster,:], axis=0) #axis 0 is correct
+            centroids[idx,:] = new_centroid
+        #Evaluate (6.1) from Lecture Notes:
+        alpha = EvaluateKmeans(Data, Nobs, centroids, K, clusters) 
+        # INITIALIZATION pt II: perform one step outside the while loop
+        clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #New cluster assignments
+        centroids = UpdateCentroids(Data, Nobs, centroids, K, clusters) #New centroids
+        beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters) #Did we improve? compare beta&alpha
+        print("Step 1 is done outside the loop")
+        count = 1 
+        while beta < alpha and count < maxit: 
+            alpha = beta
+            clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #New cluster assignments
+            centroids = UpdateCentroids(Data, Nobs, centroids, K, clusters) #New centroids
+            beta = EvaluateKmeans(Data, Nobs, centroids, K, clusters) #Did we improve? compare beta&alpha
+            count = count+1        
+            print("Step", count, "has been completed")
+    
+        if count == maxit:
+            print("Maxit reached")
+        else:
+            print("Non-improved (6.1) reached")
+            
+        return centroids, clusters
     else: 
         raise ValueError("Enter valid initialization method for centroids") 
     
-    clusters = [[] for index in range(K)] 
-    clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Assign Clusters
-    print("Centroids,clusters are initialized")
+    # clusters = [[] for index in range(K)] 
+    # clusters = AssignCluster(Data, Nobs, centroids, K, clusters) #Assign Clusters
+    # print("Centroids,clusters are initialized")
     
     #Evaluate (6.1) from Lecture Notes:
     alpha = EvaluateKmeans(Data, Nobs, centroids, K, clusters) 
@@ -105,13 +143,14 @@ def EvaluateKmeans(Data, Nobs, centroids, K, clusters):
     obj = 0.0
     for clust_id, clust in enumerate(clusters):
         obj = obj +  np.sum( (Data[clust,:] - centroids[clust_id]) ** 2 )
+    
+    print("value of 6.1 at this step:", obj)
 
     return obj
 
 # for point_idx in clust:
 #     point = Data[point_idx,:]
 #     obj = obj +  np.sum( (point - centroids[clust_id]) ** 2 )
-# print("value of 6.1 at this step:", obj)
 
 def UpdateCentroids(Data, Nobs, centroids, K, clusters):
     '''
