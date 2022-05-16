@@ -16,31 +16,36 @@ Xarray = X.to_numpy()
 Xarray = Xarray.astype(np.float32) / 255.0 #Normalization: useful for computation
 
 
-
 ## Initialization steps
-
+np.random.seed(12)
 # Number of clusters 
 K = 10
 
 # Number of data points to be used: ideally 70000
-BigN = 10000
-Data = Xarray[:BigN,:] 
-real_val = y[:BigN] 
+BigN = 3000
+indices = np.random.choice(Xarray.shape[0], size = BigN, replace = False)
+Data = Xarray[indices,:]
+real_val = y[indices] 
 
 # Construct desired Kernel matrix 
 # Kernel (and hyperparameter) options: Gauss (with gamma), Poly (with r), Sigmoid (with alpha and C), 
 # ..., quadrant_col_sum, nonzerototal, nonzerorows, nonzerorows_cols
 
-KernelMat = KmBKM.BuildKernel(Data, kernel = "Gauss", gamma=0.01)
+KernelMat = KmBKM.BuildKernel(Data, kernel = "Gauss")
 KernelMat = KernelMat + KernelMat.T - np.diag( np.diag(KernelMat) )
 # np.save("GaussianKernel_FullDataset",KernelMat)
 
 ## Run algorithm
 clust = KmK.Kmeans(KernelMat, Data, K, maxit = 120)
+clust_with_real_indices = [[] for kk in range(K)]
+for cluster_id, cluster in enumerate(clust):
+    for element in cluster:
+        clust_with_real_indices[cluster_id].append(indices[element])
+del cluster, cluster_id, element, clust
 
 ## Compute and print result
-result = KmK.MostRepresentedInEachCluster(clust, real_val)
-acc = KmK.Accuracy(clust, real_val)
+result = KmK.MostRepresentedInEachCluster(clust_with_real_indices, real_val)
+acc = KmK.Accuracy(clust_with_real_indices, real_val)
 
 print("Size of resulting clusters: ", result)
 print("Accuracy: ", acc)
