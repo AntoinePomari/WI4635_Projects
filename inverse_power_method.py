@@ -8,13 +8,13 @@ Created on Sat Apr 30 04:39:49 2022
 
 
 import numpy as np
-import scipy.linalg as spla
+# import scipy.linalg as spla
 import Kmeans_EuclDistance as KmEu
 import Kmeans_BuildSimilartyMatrices as KmBSM
 
 
 def inverse_power(L, mu, v, niter, tol):
-        '''
+    '''
     Power method Algorith 8. 
     Steps: 
     For niter iterations
@@ -34,11 +34,11 @@ def inverse_power(L, mu, v, niter, tol):
     v: biggest eigenvector
         
     '''
-    for i in range(niter)
+    for i in range(niter):
         Lv = np.dot(L,v)
         Lv_norm = np.linalg.norm(Lv)
         v = Lv/Lv_norm
-        mu_new = np.dot(np.transpose(v),np,dot(L,v))
+        mu_new = np.dot(np.transpose(v),np.dot(L,v))
         if (abs(mu_new - mu)/mu_new) < tol:
             return mu_new, v
         mu = mu_new
@@ -46,7 +46,7 @@ def inverse_power(L, mu, v, niter, tol):
     return mu_new, v
 
 
-def find_eigen_vectors(L, K):
+def find_eigen_vectors(L, K, niter, tol):
     '''
     Algorithm to find K smallest eigenvectors. 
     Steps: 
