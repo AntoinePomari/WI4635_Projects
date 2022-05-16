@@ -10,7 +10,7 @@ from sklearn.datasets import fetch_openml
 
 X, y = fetch_openml('mnist_784', version=1, return_X_y=True)
 Xarray = X.to_numpy()
-Xarray = Xarray.astype(np.float64) / 255.0 #To float & normalize: general habit for computations
+Xarray = Xarray.astype(np.float32) / 255.0 #To float & normalize: general habit for computations
 K = 10
 
 
