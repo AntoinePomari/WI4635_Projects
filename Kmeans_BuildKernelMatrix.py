@@ -36,7 +36,8 @@ def BuildKernel(Data = np.ndarray, kernel = "Gauss", gamma = 0.1, alpha = 1e-3, 
     print("Starting computation of kernel values...")
     if kernel == "Gauss":
         for ii, vector in enumerate(Data):
-            K[ii].append(np.append(vecofzeros, np.exp( -gamma * np.sum( (vector - Data[ii:,:]) ** 2, axis = 1 ) ) ) )
+            # K[ii].append(np.append(vecofzeros, np.exp( -gamma * np.sum( (vector - Data[ii:,:]) ** 2, axis = 1 ) ) ) )
+            K[ii].append(np.append(vecofzeros, np.exp( -gamma * np.linalg.norm(vector - Data[ii:,:], axis = 1 ) ) ) )            
             vecofzeros = np.append(vecofzeros, 0)
             
     elif kernel == "Poly":
